@@ -1,10 +1,12 @@
 import os
 
+# https://www.youtube.com/watch?v=g2t7M2HTZ9U&list=PLqnslRFeH2Uqfv1Vz3DqeQfy0w20ldbaV&index=4
+
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 import tensorflow as tf
 from tensorflow import keras
 from keras import layers
-from keras.layers import preprocessing
+from keras.layers import preprocessing, Normalization
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -41,8 +43,25 @@ def main():
 
     train_labels = train_features.pop('MPG')
     test_labels = test_features.pop('MPG')
+    plot('Horsepower', train_features=train_features, train_labels=train_labels)
+    plot('Weight', train_features=train_features, train_labels=train_labels)
+    print(train_ds.describe().transpose()[['mean', 'std']])
+    normalizer = Normalization()
+    normalizer.adapt(np.array(train_features))
+    print(normalizer.mean.numpy())
+    first = np.array(train_features[:1])
+    print('first example : ', first)
+    print('Normalized example : ', normalizer(first).numpy())
 
-
+def plot(feature, x=None, y=None, train_features=None, train_labels=None):
+    plt.figure(figsize=(10, 8))
+    plt.scatter(train_features[feature], train_labels, label='Data')
+    if x is not None and y is not None:
+        plt.plot(x, y, color='k', label='Predictions')
+    plt.xlabel(feature)
+    plt.ylabel('MPG')
+    plt.legend()
+    plt.show()
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':

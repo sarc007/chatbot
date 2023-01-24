@@ -19,7 +19,10 @@ def main():
     physical_devices = tf.config.list_physical_devices("GPU")
     print(physical_devices)
     mnist = keras.datasets.mnist
+    # print(mnist.load_data()[0])
     (x_train, y_train), (x_test, y_test) = mnist.load_data()
+    # print(x_train)
+    # print(y_train)
     print(x_train.shape, y_train.shape)
     x_train, x_test = x_train / 255.0, x_test / 255.0
     # for i in range(6):
