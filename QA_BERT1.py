@@ -3,11 +3,12 @@ from transformers import AutoTokenizer
 from transformers import pipeline
 import os
 import json
+import torch
 # from transformers import BertConfig
 # from transformers import BertForSequenceClassification
 # from transformers import BertForTokenClassification
-model = BertForQuestionAnswering.from_pretrained('bert-large-uncased-whole-word-masking-finetuned-squad')
-tokenizer = AutoTokenizer.from_pretrained('bert-large-uncased-whole-word-masking-finetuned-squad') 
+model = BertForQuestionAnswering.from_pretrained('deepset/roberta-base-squad2')
+tokenizer = AutoTokenizer.from_pretrained('deepset/roberta-base-squad2') 
 
 contexts = []
 
@@ -74,14 +75,62 @@ for i in range(len(contexts)):
 # print(train_json)
 
 answers =  [{"text": contexts[i], "answer_start": 0, "answer_end":len(contexts[i])-1} for i in range(len(contexts))]
-print(answers[3])
-# train_encodings = tokenizer(contexts, questions, truncation=True, padding=True)
-# print(train_encodings.char_to_token(0, answer_start)
+print(answers[6])
+train_encodings = tokenizer(contexts, questions, truncation=True, padding=True)
+print(train_encodings.keys())
+# print(tokenizer.decode(train_encodings['input_ids'][0]))
+print(answers[0]['answer_start'])
+train_encodings.char_to_token(0, answers[6]['answer_end'])
+print(answers[6]['answer_end'])
+# train_encodings.char_to_token(0, answers[1]['answer_start'])
 start_positions = []
 end_positions = []
-# for context in contexts:
-#     start_positions.append(train_encodings(0,0))
-#     end_positions.append(train_encodings(0,len(context)))
+for i in range(len(contexts)):
+    start_positions.append(train_encodings.char_to_token(i,answers[i]['answer_start']))
+    end_positions.append(train_encodings.char_to_token(i,answers[i]['answer_end']))
+    j=1
+    while end_positions[-1] is None:
+        end_positions[-1] = train_encodings.char_to_token(i,answers[i]['answer_end']-j)         
+        j+=1
 
-# train_encodings.update({'start_positions': start_positions, 'end_positions': end_positions})
-# print(train_encodings)
+
+train_encodings.update({'start_positions': start_positions, 'end_positions': end_positions})
+print(train_encodings['end_positions'][:100])
+class SquadDataset(torch.utils.data.Dataset):
+    def __init__(self, encodings):
+        self.encodings = encodings
+    def __getitem__(self, idx):
+        return {key: torch.tensor(val[idx]) for key, val in self.encodings.items()}
+    def __len__(self):
+        return len(self.encodings.input_ids)
+    
+train_datasets = SquadDataset(train_encodings)
+
+from torch.utils.data import DataLoader
+from transformers import AdamW
+from tqdm import tqdm
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model.to(device)
+model.train()
+optim = AdamW(model.parameters(), lr=5e-5)
+train_loader = DataLoader(train_datasets, batch_size=16, shuffle=True )
+for epoch in range(3):
+    loop = tqdm(train_loader)
+    for batch in loop:
+        optim.zero_grad()
+        input_ids = batch['input_ids'].to(device)
+        attention_mask = batch['attention_mask'].to(device)
+        start_positions = batch['start_positions'].to(device)
+        end_positions = batch['end_positions'].to(device)
+        outputs = model(input_ids = input_ids, attention_mask = attention_mask, start_positions = start_positions, end_positions = end_positions)
+        loss = outputs[0]
+        loss.backward()
+        optim.step()
+        loop.set_description(f'Epoch{epoch}')
+        loop.set_postfix(loss=loss.item())
+
+
+model_path = 'model/zuqa'
+model.save_pretrained(model_path)
+tokenizer.save_pretrained(model_path)
