@@ -7,8 +7,8 @@ import torch
 # from transformers import BertConfig
 # from transformers import BertForSequenceClassification
 # from transformers import BertForTokenClassification
-model = BertForQuestionAnswering.from_pretrained('deepset/roberta-base-squad2')
-tokenizer = AutoTokenizer.from_pretrained('deepset/roberta-base-squad2') 
+model = BertForQuestionAnswering.from_pretrained('distilbert-base-uncased-distilled-squad')
+tokenizer = AutoTokenizer.from_pretrained('distilbert-base-uncased-distilled-squad') 
 
 contexts = []
 
