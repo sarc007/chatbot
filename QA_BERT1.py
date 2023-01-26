@@ -4,11 +4,13 @@ from transformers import pipeline
 import os
 import json
 import torch
+# from pytorch_pretrained_bert import BertModel
+# from pytorch_pretrained_bert.file_utils import PYTORCH_PRETRAINED_BERT_CACHE
 # from transformers import BertConfig
 # from transformers import BertForSequenceClassification
 # from transformers import BertForTokenClassification
-model = BertForQuestionAnswering.from_pretrained('distilbert-base-uncased-distilled-squad')
-tokenizer = AutoTokenizer.from_pretrained('distilbert-base-uncased-distilled-squad') 
+model = BertForQuestionAnswering.from_pretrained('bert-large-uncased-whole-word-masking-finetuned-squad')
+tokenizer = AutoTokenizer.from_pretrained('bert-large-uncased-whole-word-masking-finetuned-squad') 
 
 contexts = []
 
@@ -65,16 +67,21 @@ for context in contexts:
 # print(result)
 
 train_json = {"data":[{"title":"IT support & general questions", "paragraphs":[],}]}
+answers = []
 # print(train_json["data"][0]['paragraphs'])
 for i in range(len(contexts)):
+    answer_start = contexts_str.find(context[i])
+    print(answer_start)
+    answer_end = answer_start + len(contexts[i])
     data_dict_paragraphs={
-        "qas":[{"question": questions[i], "id": i, "answers":[{"text": contexts[i], "answer_start": 0}], "is_impossible": False}], 
-        "context": contexts[i],
+        "qas":[{"question": questions[i], "id": i, "answers":[{"text": contexts[i], "answer_start": 0, "answer_end":0}], "is_impossible": False}], 
+        "context": contexts_str,
         }
+    answers.append({"text": contexts[i], "answer_start": answer_start, "answer_end":answer_end})
     train_json["data"][0]['paragraphs'].append(data_dict_paragraphs) 
 # print(train_json)
 
-answers =  [{"text": contexts[i], "answer_start": 0, "answer_end":len(contexts[i])-1} for i in range(len(contexts))]
+
 print(answers[6])
 train_encodings = tokenizer(contexts, questions, truncation=True, padding=True)
 print(train_encodings.keys())
