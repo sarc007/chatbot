@@ -11,7 +11,10 @@ import torch
 # from transformers import BertForTokenClassification
 model = BertForQuestionAnswering.from_pretrained('bert-large-uncased-whole-word-masking-finetuned-squad')
 tokenizer = AutoTokenizer.from_pretrained('bert-large-uncased-whole-word-masking-finetuned-squad') 
+with open('./data/bert_train_set/train-v2.0.json','rb') as f:
+    squad_dict = json.load(f)
 
+print(squad_dict['data'][:5])
 contexts = []
 
 contexts.append("""IT Support can be contacted through following channels
@@ -52,8 +55,8 @@ questions.append("Can you help me fix technical issues at home?")
 questions.append("How do I divert my extension to my mobile phone?")
 questions.append("How do I arrange & conduct meetings when I am working remotely?")
 contexts_str = ''
-for context in contexts:
-    contexts_str+= context
+# for context in contexts:
+#     contexts_str+= context
 # print(contexts)
 # print(questions)
 # tokenizer.encode(questions[0], truncation=True, padding=True)
@@ -68,26 +71,33 @@ for context in contexts:
 
 train_json = {"data":[{"title":"IT support & general questions", "paragraphs":[],}]}
 answers = []
+train_json["data"][0]['paragraphs'].append({"qas":[]})
 # print(train_json["data"][0]['paragraphs'])
 for i in range(len(contexts)):
-    answer_start = contexts_str.find(context[i])
+    contexts_str+= contexts[i]
+    answer_start = contexts_str.find(contexts[i])
     print(answer_start)
     answer_end = answer_start + len(contexts[i])
-    data_dict_paragraphs={
-        "qas":[{"question": questions[i], "id": i, "answers":[{"text": contexts[i], "answer_start": 0, "answer_end":0}], "is_impossible": False}], 
-        "context": contexts_str,
+    if i < len(contexts)-1:
+        data_dict_paragraphs={
+            "question": questions[i], "id": i, "answers":[{"text": contexts[i], "answer_start": answer_start, "answer_end":answer_end}], "is_impossible": False
+            }
+    else:
+        data_dict_paragraphs={
+            "question": questions[i], "id": i, "answers":[{"text": contexts[i], "answer_start": answer_start, "answer_end":answer_end}], "is_impossible": False
         }
     answers.append({"text": contexts[i], "answer_start": answer_start, "answer_end":answer_end})
-    train_json["data"][0]['paragraphs'].append(data_dict_paragraphs) 
+    train_json["data"][0]['paragraphs'][0]['qas'].append(data_dict_paragraphs) 
+train_json["data"][0]['paragraphs'].append({'context': contexts_str})
 # print(train_json)
-
+contexts_list = [contexts_str] * len(contexts)
 
 print(answers[6])
-train_encodings = tokenizer(contexts, questions, truncation=True, padding=True)
+train_encodings = tokenizer(contexts_list, questions, truncation=True, padding=True)
 print(train_encodings.keys())
 # print(tokenizer.decode(train_encodings['input_ids'][0]))
 print(answers[0]['answer_start'])
-train_encodings.char_to_token(0, answers[6]['answer_end'])
+train_encodings.char_to_token(0, answers[6]['answer_end'])  
 print(answers[6]['answer_end'])
 # train_encodings.char_to_token(0, answers[1]['answer_start'])
 start_positions = []
