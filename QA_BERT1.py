@@ -124,13 +124,13 @@ class SquadDataset(torch.utils.data.Dataset):
 train_datasets = SquadDataset(train_encodings)
 
 from torch.utils.data import DataLoader
-from transformers import AdamW
+from torch import optim as optimz
 from tqdm import tqdm
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 model.train()
-optim = AdamW(model.parameters(), lr=5e-5)
+optim = optimz.AdamW(model.parameters(), lr=5e-5)
 train_loader = DataLoader(train_datasets, batch_size=16, shuffle=True )
 for epoch in range(3):
     loop = tqdm(train_loader)
